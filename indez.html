@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANI · Navegador Interior (Método BE YOU)</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React 18 UMD (Producción Autónoma sin CORS) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #fafaf9;
+      color: #1c1917;
+      margin: 0;
+      padding: 0;
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-in-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+  <div id="root"></div>
+
+  <script>
+    const e = React.createElement;
+    const useState = React.useState;
+    const useEffect = React.useEffect;
+    const useMemo = React.useMemo;
+
+    // 21 DÍAS DEL MÉTODO BE YOU
+    const DAYS_DATA = [
+      {
+        day: 1, phase: 1, title: "Detectar el disparador",
+        pausa: "Cuando reaccionamos con desproporción o malestar repentino, no estamos respondiendo al presente, sino a un patrón activado. El primer paso para liberarte es dejar de ser el incendio y convertirte en el observador.",
+        prompt: "Observa un momento reciente de malestar o ansiedad:",
+        fields: [
+          { key: "d1_situacion", label: "¿Qué estaba pasando externamente?", placeholder: "Ej. Mi pareja tardó horas en responder mi mensaje..." },
+          { key: "d1_pensamiento", label: "¿Qué pensaste justo antes de sentir la emoción?", placeholder: "Ej. Pensé que no le importo o que se cansó de mí..." },
+          { key: "d1_reaccion", label: "¿Qué hiciste inmediatamente después?", placeholder: "Ej. Le mandé varios mensajes seguidos o me aislé en silencio..." }
+        ],
+        microresultado: "Separaste lo que ocurrió de lo que te contaste sobre lo que ocurrió."
+      },
+      {
+        day: 2, phase: 1, title: "Circuito personal de autosabotaje",
+        pausa: "El autosabotaje no es falta de voluntad; es un mecanismo de protección desactualizado. Repetimos lo que nos resulta conocido porque para el inconsciente equivale a seguro.",
+        prompt: "Mapea tu circuito recurrente completando estas frases:",
+        fields: [
+          { key: "d2_siento", label: "1. Siempre me siento ______ cuando ______.", placeholder: "Ej. Insegura cuando me piden dar mi opinión..." },
+          { key: "d2_hago", label: "2. Cuando me siento así, suelo hacer ______.", placeholder: "Ej. Quedarme callada o fingir conformidad..." },
+          { key: "d2_pasa", label: "3. Después termina pasando que ______.", placeholder: "Ej. Me siento frustrada y poco valorada..." }
+        ],
+        microresultado: "El autosabotaje ha dejado de ser abstracto; ahora tienes su mapa."
+      },
+      {
+        day: 3, phase: 1, title: "La decisión infantil",
+        pausa: "De niños tomamos conclusiones para sobrevivir emocionalmente. Esas decisiones tenían sentido a los 6 u 8 años, pero hoy gobiernan tu vida adulta sin tu permiso.",
+        prompt: "Explora la lógica privada que aprendiste en tu infancia:",
+        fields: [
+          { key: "d3_querida", label: "Aprendí que para ser querida debía...", placeholder: "Ej. Ser perfecta, no molestar, adivinar lo que otros necesitaban..." },
+          { key: "d3_nodebia", label: "Aprendí que no debía...", placeholder: "Ej. Expresar mi enojo, pedir ayuda o cometer errores..." },
+          { key: "d3_yoera", label: "Aprendí que yo era...", placeholder: "Ej. Una carga o la responsable del clima emocional familiar..." }
+        ],
+        microresultado: "Reconoces las decisiones que ya no necesitas sostener como adulta."
+      },
+      {
+        day: 4, phase: 1, title: "Qué temo perder",
+        pausa: "La ansiedad muchas veces surge cuando estar bien amenaza una zona de confort conocida o una lealtad silenciosa del pasado.",
+        prompt: "Examina tu resistencia inconsciente cuando las cosas marchan bien:",
+        fields: [
+          { key: "d4_temo", label: "¿Qué temes internamente que pase cuando algo va muy bien?", placeholder: "Ej. Temo que en cualquier momento ocurra una desgracia..." },
+          { key: "d4_perderia", label: "¿Qué sientes que perderías si te muestras plena y segura?", placeholder: "Ej. La atención de mis seres queridos, el derecho a quejarme..." },
+          { key: "d4_parte", label: "¿Qué parte de ti se activa (la temerosa, la exigente)?", placeholder: "Ej. Mi guardiana hipervigilante..." }
+        ],
+        microresultado: "Nombra el miedo y la ansiedad perderá más de la mitad de su fuerza."
+      },
+      {
+        day: 5, phase: 1, title: "Primera intuición de herida",
+        pausa: "Las heridas emocionales son gafas con las que filtramos la realidad. Sin juzgar: Abandono, Rechazo, Injusticia, Humillación, Traición.",
+        prompt: "Escucha tu primera intuición sin analizar demasiado:",
+        fields: [
+          { key: "d5_dolor", label: "¿Qué tipo de dolor emocional te resuena como más antiguo o profundo?", placeholder: "Ej. El temor a que me dejen sola de repente..." },
+          { key: "d5_intuicion", label: "¿En qué situaciones actuales sientes que esa herida se vuelve a tocar?", placeholder: "Ej. Cuando alguien se distancia o no me responde..." }
+        ],
+        microresultado: "Tu intuición acaba de señalar la dirección hacia la raíz."
+      },
+      {
+        day: 6, phase: 1, title: "Observación consciente",
+        pausa: "Existe una gran diferencia entre ser reactiva y observar una reacción en ti. Cuando diferencias a tu Adulta de tu Niña, recuperas el poder de elegir.",
+        prompt: "Recuerda una reacción impulsiva reciente:",
+        fields: [
+          { key: "d6_reaccion", label: "¿Reaccionaste como adulta centrada o como niña asustada?", placeholder: "Ej. Como una niña asustada que busca defenderse..." },
+          { key: "d6_edad", label: "¿Qué edad emocional sentiste en ese instante?", placeholder: "Ej. Sentí que tenía unos 7 u 8 años..." }
+        ],
+        microresultado: "Te has diferenciado de la reacción; ahora eres quien la observa."
+      },
+      {
+        day: 7, phase: 1, title: "Integración de la Semana 1",
+        pausa: "Has completado la Fase de Autoconocimiento. Has pasado de la confusión a la autoobservación consciente.",
+        prompt: "Sintetiza lo descubierto en estos primeros 7 días:",
+        fields: [
+          { key: "d7_descubrimiento", label: "¿Qué es lo más valioso que descubriste sobre ti?", placeholder: "Ej. Cuánto me esfuerzo por complacer para evitar ser juzgada..." },
+          { key: "d7_patron", label: "¿Qué patrón repetitivo ves ahora con claridad?", placeholder: "Ej. Exijo perfección para que nadie pueda criticarme..." },
+          { key: "d7_conexion", label: "¿Qué herida o decisión presientes que lo alimentaba?", placeholder: "Ej. La decisión de 'no debo incomodar para ser querida'..." }
+        ],
+        microresultado: "¡Fase 1 Completada! Conoces tu mapa interior. Ahora podemos ordenarlo."
+      },
+      {
+        day: 8, phase: 2, title: "Las 5 Heridas Emocionales",
+        pausa: "Orientaciones BE YOU para tu autoconocimiento (no diagnósticos clínicos):\n• ABANDONO: Miedo a la soledad o a no poder sola.\n• RECHAZO: Sensación de 'no soy válida tal como soy'.\n• HUMILLACIÓN: Vergüenza de que mis necesidades sean 'demasiado'.\n• TRAICIÓN: Miedo a perder el control y desconfianza básica.\n• INJUSTICIA: Exigencia de ser perfecta y rígida para merecer amor.",
+        prompt: "Examina tu resonancia personal:",
+        fields: [
+          { key: "d8_historia", label: "¿Cuál historia o sentimiento sentiste más cercano?", placeholder: "Ej. La herida de injusticia y rechazo..." },
+          { key: "d8_incomodidad", label: "¿Cuál de ellas te generó mayor incomodidad al leerla?", placeholder: "Ej. La de humillación, porque me molesta sentirme expuesta..." }
+        ],
+        microresultado: "Tu herida dominante ha empezado a tomar forma y nombre claro."
+      },
+      {
+        day: 9, phase: 2, title: "Cuando mi herida se activa",
+        pausa: "Las heridas no están encendidas siempre; tienen situaciones clave donde saltan como resortes automáticos.",
+        prompt: "Analiza el contexto donde tu herida salta:",
+        fields: [
+          { key: "d9_situaciones", label: "¿En qué momentos específicos se activa?", placeholder: "Ej. Cuando corrigen mi trabajo o pasan por alto mi opinión..." },
+          { key: "d9_personas", label: "¿Con qué tipo de personas ocurre con más fuerza?", placeholder: "Ej. Con figuras de autoridad o personas frías..." },
+          { key: "d9_emocion", label: "¿Qué sensación física o mental aparece primero?", placeholder: "Ej. Presión en el pecho y un nudo en la garganta..." }
+        ],
+        microresultado: "Ves el patrón con precisión; ya no te toma por sorpresa."
+      },
+      {
+        day: 10, phase: 2, title: "Nombrar mi herida dominante",
+        pausa: "Lo que se nombra pierde poder. Hoy declaras tu hipótesis personal: la historia aprendida, no tu identidad real.",
+        prompt: "Declara tu hipótesis de herida dominante:",
+        fields: [
+          { key: "d10_herida", label: "La herida que más reconozco en mí hoy es:", placeholder: "Ej. La herida de Injusticia / Exigencia..." },
+          { key: "d10_sabotaje", label: "Esta herida ha provocado que me sabotee en:", placeholder: "Ej. Mis proyectos, porque postergo todo hasta que esté perfecto..." }
+        ],
+        microresultado: "La confusión difusa tiene ahora un nombre claro sobre el cual trabajar."
+      },
+      {
+        day: 11, phase: 2, title: "El personaje protector",
+        pausa: "Para sobrevivir al dolor creaste una máscara: tu Personaje Protector. Te salvó la vida en la infancia, pero hoy te encierra en una jaula.",
+        prompt: "Observa a la guardiana que se activa para defenderte:",
+        fields: [
+          { key: "d11_defensa", label: "Cuando sientes peligro, ¿cómo reacciona tu personaje?", placeholder: "Ej. Se vuelve fría, calculadora y se aísla de todos..." },
+          { key: "d11_costo", label: "¿Qué precio estás pagando hoy por dejarle el mando?", placeholder: "Ej. Cansancio extremo, soledad y falta de intimidad real..." }
+        ],
+        microresultado: "Has empezado a desvelar la máscara que usas como escudo."
+      },
+      {
+        day: 12, phase: 2, title: "Identificar el arquetipo protector",
+        pausa: "Arquetipos BE YOU: La Perfecta, La Complaciente, La Invisible, La Fuerte, La Controladora, La Autosuficiente.",
+        prompt: "Ponle rostro y nombre a tu personaje:",
+        fields: [
+          { key: "d12_arquetipo", label: "¿Cuál de estos arquetipos encaja con tu máscara?", placeholder: "Ej. La Complaciente combinada con La Perfecta..." },
+          { key: "d12_nombre", label: "Si le dieras un nombre o apodo, ¿cuál sería?", placeholder: "Ej. 'Señorita Control' o 'La Heroína Cansada'..." }
+        ],
+        microresultado: "Tu personaje tiene un nombre; ahora puedes hablarle sin ser él."
+      },
+      {
+        day: 13, phase: 2, title: "Cómo me protegió (Comprensión)",
+        pausa: "No podemos soltar lo que no hemos agradecido. Tu personaje nació del amor de tu niña por sobrevivir. Hoy le damos las gracias y la relevamos del mando.",
+        prompt: "Rinde un homenaje de comprensión a tu personaje:",
+        fields: [
+          { key: "d13_protegio", label: "Mi personaje me protegió en el pasado de...", placeholder: "Ej. Sentir el dolor de la soledad o el rechazo directo..." },
+          { key: "d13_ayudo", label: "Me ayudó durante mucho tiempo a...", placeholder: "Ej. Ser muy independiente, disciplinada y resolutiva..." },
+          { key: "d13_limita", label: "Sin embargo, hoy en mi vida adulta me limita cuando...", placeholder: "Ej. No me permite pedir ayuda y me llena de estrés..." }
+        ],
+        microresultado: "Dejas de luchar contra tu personaje y pasas a comprenderlo."
+      },
+      {
+        day: 14, phase: 2, title: "Integración: Mapa de Orden Interior",
+        pausa: "Al dejar de luchar contra ti misma, la energía que gastabas resistiéndote comienza a utilizarse para construir tu dirección.",
+        prompt: "Ensambla tu mapa de orden interior:",
+        fields: [
+          { key: "d14_hechos", label: "Hechos concretos vs Interpretación de la herida:", placeholder: "Ej. Hecho: No respondió de inmediato. Interpretación: Ya no le importo..." },
+          { key: "d14_necesidad", label: "¿Qué necesita tu niña en lugar de la máscara?", placeholder: "Ej. Calma, respiración y contención adulta..." },
+          { key: "d14_renuncia", label: "¿A qué patrón defensivo renuncias hoy?", placeholder: "Ej. A asumir la responsabilidad por el bienestar de los demás..." }
+        ],
+        microresultado: "¡Fase 2 Completada! Tu orden interior está establecido."
+      },
+      {
+        day: 15, phase: 3, title: "La pausa antes de elegir",
+        pausa: "Entre el estímulo y tu respuesta existe un espacio de libertad. En ese espacio reside tu poder de elegir como adulta.",
+        prompt: "Diseña tu protocolo de Pausa Consciente:",
+        fields: [
+          { key: "d15_estimulo", label: "Estímulo detonante habitual:", placeholder: "Ej. Una crítica inesperada sobre mi trabajo..." },
+          { key: "d15_automatica", label: "Reacción automática antigua (Personaje):", placeholder: "Ej. Justificarme de inmediato o ponerme a la defensiva..." },
+          { key: "d15_pausa", label: "¿Qué harás para crear la Pausa BE YOU?", placeholder: "Ej. Tres respiraciones lentas antes de contestar..." },
+          { key: "d15_eleccion", label: "Elección consciente desde tu Yo Adulta:", placeholder: "Ej. Responder con serenidad y poner límites claros..." }
+        ],
+        microresultado: "Has tomado el timón. La reactividad cede a la elección consciente."
+      },
+      {
+        day: 16, phase: 3, title: "Separar pensamiento de realidad",
+        pausa: "Un pensamiento es solo un evento mental, no una orden ni una verdad absoluta.",
+        prompt: "Desidentifícate del pensamiento recurrente:",
+        fields: [
+          { key: "d16_pensamiento", label: "Escribe un pensamiento limitante recurrente:", placeholder: "Ej. No seré capaz de sacar adelante este reto..." },
+          { key: "d16_formula", label: "Reescríbelo usando: 'Observo que mi mente tiene el pensamiento de que...'", placeholder: "Ej. Observo que mi mente tiene el pensamiento de que no seré capaz..." },
+          { key: "d16_verdad", label: "¿Qué es verdaderamente útil y cierto ahora?", placeholder: "Ej. Es solo un temor antiguo. Puedo avanzar paso a paso..." }
+        ],
+        microresultado: "El pensamiento pierde su peso absolutista y vuelve a ser solo un evento mental."
+      },
+      {
+        day: 17, phase: 3, title: "Nueva decisión adulta",
+        pausa: "Tus decisiones infantiles te cuidaron en el pasado; tus decisiones adultas construyen tu presente.",
+        prompt: "Establece tu nueva declaración de soberanía:",
+        fields: [
+          { key: "d17_antes", label: "Antes decidí que...", placeholder: "Ej. Antes decidí que para estar segura debía pasar desapercibida..." },
+          { key: "d17_hoy", label: "Hoy decido que...", placeholder: "Ej. Hoy decido que mi voz cuenta y me permito expresarme..." }
+        ],
+        microresultado: "Firmas un nuevo decreto interior con tu adulta al mando."
+      },
+      {
+        day: 18, phase: 3, title: "Hablarle distinto a mi herida",
+        pausa: "Tu niña interior no necesita juicios; necesita que tu voz adulta le dé la seguridad que no tuvo.",
+        prompt: "Escribe un mensaje de amor compasivo a tu niña:",
+        fields: [
+          { key: "d18_necesita", label: "¿Qué necesita escuchar tu niña hoy?", placeholder: "Ej. 'Ya no estás sola, yo me hago cargo, estás a salvo'..." },
+          { key: "d18_mensaje", label: "Escribe tu mensaje directo para ella:", placeholder: "Ej. Tranquila mi amor, entiendo tu temor pero ya crecimos. Yo te cuido..." }
+        ],
+        microresultado: "Conectas el lazo de compasión interior y tu niña se siente a salvo."
+      },
+      {
+        day: 19, phase: 3, title: "Debilitar el personaje con microacciones",
+        pausa: "El personaje no se desarma con teoría, sino con pequeños actos de valentía consciente en dosis mínimas.",
+        prompt: "Diseña tu microacción de desafío al personaje:",
+        fields: [
+          { key: "d19_sinmiedo", label: "¿Qué harías hoy si no actuaras desde el miedo del personaje?", placeholder: "Ej. Decir 'No puedo comprometerme hoy con eso'..." },
+          { key: "d19_microaccion", label: "¿Cuál es la versión mínima que harás hoy?", placeholder: "Ej. Enviar un mensaje breve diciendo 'Hoy no me es posible, gracias'..." }
+        ],
+        microresultado: "Un paso real en el mundo físico debilita la máscara protectora."
+      },
+      {
+        day: 20, phase: 3, title: "Identidad emergente",
+        pausa: "Al soltar las viejas máscaras surge tu verdadera esencia BE YOU, guiada por elecciones conscientes.",
+        prompt: "Define los rasgos de la persona que encarnas hoy:",
+        fields: [
+          { key: "d20_quien", label: "¿Quién estás empezando a ser desde tu centro?", placeholder: "Ej. Una mujer serena, con límites sanos y fiel a sus valores..." },
+          { key: "d20_notolero", label: "¿Qué tratos o situaciones ya no toleras?", placeholder: "Ej. Relaciones unilaterales o sobreexigencia extrema..." },
+          { key: "d20_cambio", label: "¿Qué cambio concreto ya se nota en tu día?", placeholder: "Ej. Respiro más antes de responder y me culpo mucho menos..." }
+        ],
+        microresultado: "Tu identidad emergente toma forma en tus decisiones cotidianas."
+      },
+      {
+        day: 21, phase: 3, title: "CARTA DE INTEGRACIÓN Y CIERRE",
+        pausa: "Día 21. Cierre del viaje. Lo que se escribe y se nombra se integra en el alma. Relevas formalmente a tu personaje y asumes la dirección de tu vida.",
+        prompt: "Escribe tu carta oficial de integración:",
+        fields: [
+          { key: "d21_carta", label: "Querido/a [Nombre de tu Personaje]: Gracias por protegerme de... Te honro, pero hoy tomo el mando porque...", placeholder: "Escribe aquí tu carta de relevo y agradecimiento..." },
+          { key: "d21_compromiso", label: "Mi compromiso definitivo conmigo misma es:", placeholder: "Ej. Mantener mi escucha interior diaria y ser leal a mi verdad..." }
+        ],
+        microresultado: "¡FELICITACIONES! Has completado los 21 DÍAS de ANI. Has vuelto a ti."
+      }
+    ];
+
+    // PREGUNTAS DEL TEST DE HERIDAS
+    const DIAG_QUESTIONS = [
+      { id: 1, wound: 'Abandono', text: 'Siento mucha ansiedad cuando una persona cercana no me responde o se distancia emocionalmente.' },
+      { id: 2, wound: 'Rechazo', text: 'A menudo siento que mi presencia no es realmente valorada o temo no ser suficiente.' },
+      { id: 3, wound: 'Humillación', text: 'Me da vergüenza mostrar mis necesidades o siento que pedir atención es incomodar.' },
+      { id: 4, wound: 'Traición', text: 'Me cuesta delegar o confiar; prefiero tener el control para evitar engaños.' },
+      { id: 5, wound: 'Injusticia', text: 'Me exijo ser impecable, correcta y fuerte; me cuesta aceptar mis errores.' },
+      { id: 6, wound: 'Abandono', text: 'Cedo en cosas importantes con tal de que la otra persona no se aleje de mí.' },
+      { id: 7, wound: 'Rechazo', text: 'Tengo una voz interna crítica que me dice que no soy suficientemente buena o capaz.' },
+      { id: 8, wound: 'Humillación', text: 'Tiendo a postergar mis prioridades para atender las demandas de los demás.' },
+      { id: 9, wound: 'Traición', text: 'Permanezco en alerta buscando inconsistencias o mentiras en las palabras ajenas.' },
+      { id: 10, wound: 'Injusticia', text: 'Oculto mi vulnerabilidad detrás de una imagen de que todo está perfecto y en orden.' }
+    ];
+
+    function App() {
+      const [tab, setTab] = useState('home'); // home, days, diagnostic, clarity, brujula, log
+      const [selectedDay, setSelectedDay] = useState(1);
+      const [answers, setAnswers] = useState({});
+      const [diagAnswers, setDiagAnswers] = useState({});
+      const [clarity, setClarity] = useState({ bloqueo: '', hechos: '', interpretacion: '', deseo: '', microaccion: '' });
+
+      // Estado Sesión "La Brújula Eres Tú" (Fusión Idea 1 + 5)
+      const [brujula, setBrujula] = useState({
+        dilema: '', hecho: '', interpretacion: '', sustantivo: '', verbo: '', sabiduria: '',
+        ser: '', hacer: '', limiteNo: '', compromisoSi: ''
+      });
+
+      // Cargar persistencia
+      useEffect(() => {
+        try {
+          const a = localStorage.getItem('ani_user_answers');
+          if (a) setAnswers(JSON.parse(a));
+          const d = localStorage.getItem('ani_diag_answers');
+          if (d) setDiagAnswers(JSON.parse(d));
+          const c = localStorage.getItem('ani_clarity_data');
+          if (c) setClarity(JSON.parse(c));
+          const b = localStorage.getItem('ani_brujula_data');
+          if (b) setBrujula(JSON.parse(b));
+        } catch (err) {
+          console.log("Iniciando almacenamiento local nuevo.");
+        }
+      }, []);
+
+      const saveAnswer = (k, v) => {
+        const up = Object.assign({}, answers, { [k]: v });
+        setAnswers(up);
+        localStorage.setItem('ani_user_answers', JSON.stringify(up));
+      };
+
+      const saveDiag = (id, v) => {
+        const up = Object.assign({}, diagAnswers, { [id]: v });
+        setDiagAnswers(up);
+        localStorage.setItem('ani_diag_answers', JSON.stringify(up));
+      };
+
+      const saveClarity = (k, v) => {
+        const up = Object.assign({}, clarity, { [k]: v });
+        setClarity(up);
+        localStorage.setItem('ani_clarity_data', JSON.stringify(up));
+      };
+
+      const saveBrujula = (k, v) => {
+        const up = Object.assign({}, brujula, { [k]: v });
+        setBrujula(up);
+        localStorage.setItem('ani_brujula_data', JSON.stringify(up));
+      };
+
+      // Progreso
+      const completedDays = useMemo(() => {
+        return DAYS_DATA.filter(d => d.fields.some(f => answers[f.key] && answers[f.key].trim() !== '')).length;
+      }, [answers]);
+
+      const percent = Math.round((completedDays / 21) * 100);
+
+      const activeDay = useMemo(() => {
+        return DAYS_DATA.find(d => d.day === selectedDay) || DAYS_DATA[0];
+      }, [selectedDay]);
+
+      // Exportar Bitácora
+      const exportarBitacora = () => {
+        let t = "ANI · NAVEGADOR INTERIOR - BITÁCORA PERSONAL\n\n";
+        DAYS_DATA.forEach(d => {
+          t += `--- DÍA ${d.day}: ${d.title.toUpperCase()} ---\n`;
+          d.fields.forEach(f => {
+            t += `${f.label}\nRespuesta: ${answers[f.key] || '(Sin respuesta)'}\n\n`;
+          });
+        });
+        t += "\n--- SESIÓN MAESTRA: LA BRÚJULA ERES TÚ ---\n";
+        t += `Dilema: ${brujula.dilema}\n`;
+        t += `Reencuadre: De "${brujula.sustantivo}" a "${brujula.verbo}"\n`;
+        t += `Decisión Consciente: ${brujula.sabiduria}\n`;
+        t += `Límite (NO sin culpa): ${brujula.limiteNo}\n`;
+        t += `Compromiso (SÍ sin miedo): ${brujula.compromisoSi}\n`;
+
+        const blob = new Blob([t], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ANI_Bitacora_${new Date().toISOString().slice(0,10)}.txt`;
+        a.click();
+      };
+
+      const reiniciarTodo = () => {
+        if (window.confirm("¿Segura que deseas reiniciar todas tus reflexiones guardadas?")) {
+          localStorage.clear();
+          setAnswers({});
+          setDiagAnswers({});
+          setClarity({ bloqueo: '', hechos: '', interpretacion: '', deseo: '', microaccion: '' });
+          setBrujula({ dilema: '', hecho: '', interpretacion: '', sustantivo: '', verbo: '', sabiduria: '', ser: '', hacer: '', limiteNo: '', compromisoSi: '' });
+          alert("Bitácora reiniciada.");
+        }
+      };
+
+      return e('div', { className: 'w-full max-w-3xl mx-auto h-auto bg-stone-50 text-stone-900 pb-28 shadow-sm relative' },
+        
+        // HEADER
+        e('header', { className: 'bg-white border-b border-stone-200 sticky top-0 z-30 px-4 py-3 sm:px-6 flex items-center justify-between shadow-xs' },
+          e('div', { className: 'flex items-center space-x-2.5 cursor-pointer', onClick: () => setTab('home') },
+            e('div', { className: 'w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 font-bold text-sm shadow-xs' }, 'ANI'),
+            e('div', null,
+              e('h1', { className: 'font-serif font-bold text-stone-800 text-base leading-none' }, 'ANI · Navegador Interior'),
+              e('p', { className: 'text-[10px] text-stone-500 uppercase tracking-wider font-medium mt-0.5' }, 'Basado en el Método BE YOU')
+            )
+          ),
+          e('div', { className: 'flex items-center space-x-2' },
+            e('div', { className: 'text-right hidden sm:block' },
+              e('p', { className: 'text-xs font-semibold text-stone-700' }, `${completedDays} de 21 Días`),
+              e('p', { className: 'text-[10px] text-rose-600 font-bold' }, `${percent}% completado`)
+            ),
+            e('div', { className: 'px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 rounded-full text-xs font-bold' }, `${percent}%`)
+          )
+        ),
+
+        // VISTA HOME
+        tab === 'home' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-gradient-to-br from-rose-50 via-stone-50 to-amber-50 p-6 sm:p-8 rounded-2xl border border-rose-100 shadow-xs space-y-3' },
+            e('span', { className: 'inline-block px-3 py-1 bg-white border border-rose-200 rounded-full text-xs font-semibold text-rose-700 shadow-2xs' }, 'Tu Brújula Digital Personal'),
+            e('h2', { className: 'text-2xl sm:text-3xl font-serif font-bold text-stone-800 leading-tight' },
+              '“Deja de dar vueltas sin saber hacia dónde vas. ', e('span', { className: 'text-rose-600' }, 'VUELVE A TI'), '”'
+            ),
+            e('p', { className: 'text-xs sm:text-sm text-stone-600 leading-relaxed' },
+              'ANI aplica el Método BE YOU mediante preguntas, mapas, decisiones y microacciones conscientes en 21 días.'
+            ),
+            e('div', { className: 'pt-2 flex flex-wrap gap-2.5' },
+              e('button', { 
+                onClick: () => { setTab('days'); setSelectedDay(1); },
+                className: 'px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs sm:text-sm rounded-xl shadow-xs transition-all active:scale-95'
+              }, 'Iniciar Recorrido 21 Días →'),
+              e('button', { 
+                onClick: () => setTab('brujula'),
+                className: 'px-4 py-2.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 font-medium text-xs sm:text-sm rounded-xl shadow-2xs transition-all active:scale-95'
+              }, 'La Brújula Eres Tú (Cierre) ✨')
+            )
+          ),
+
+          // SECCIÓN DE BIENVENIDA CON EL CÓDIGO OFICIAL DE BUNNY STREAM EN FORMATO VERTICAL 9:16
+          e('div', { className: 'bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4' },
+            e('div', { className: 'flex items-center justify-between border-b border-stone-100 pb-3' },
+              e('div', null,
+                e('h3', { className: 'font-serif font-bold text-stone-800 text-base' }, 'Bienvenida a ANI · Navegador Interior'),
+                e('p', { className: 'text-[11px] text-stone-500' }, '“Tu brújula interior eres tú. Bienvenidos a bordo.”')
+              ),
+              e('span', { className: 'text-[10px] bg-stone-100 text-stone-600 px-2 py-1 rounded-md font-medium' }, '1:17 min')
+            ),
+            e('div', { className: 'flex flex-col items-center justify-center w-full' },
+              e('div', { className: 'w-full max-w-[340px] sm:max-w-[420px] md:max-w-[460px]' },
+                e('div', { style: { position: 'relative', paddingTop: '177.77%' } },
+                  e('iframe', {
+                    src: 'https://iframe.mediadelivery.net/embed/254935/4f299e60-43e1-42da-b563-899549bc1947?autoplay=false&loop=false&muted=false&preload=true&responsive=true',
+                    loading: 'lazy',
+                    style: { border: 0, position: 'absolute', top: 0, height: '100%', width: '100%', borderRadius: '1rem' },
+                    allow: 'accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen;',
+                    allowFullScreen: true
+                  })
+                )
+              ),
+              e('p', { className: 'text-xs text-stone-500 mt-2.5 text-center italic' },
+                'Escucha esta cápsula de inicio para orientar tu brújula interior.'
+              )
+            )
+          ),
+
+          // FASES
+          e('div', { className: 'grid sm:grid-cols-3 gap-3 pt-2' },
+            e('div', { className: 'p-4 bg-white rounded-xl border border-stone-200 shadow-xs space-y-1' },
+              e('span', { className: 'text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded' }, 'FASE 1'),
+              e('h4', { className: 'text-xs font-bold text-stone-800' }, 'Autoconocimiento (Días 1-7)'),
+              e('p', { className: 'text-[11px] text-stone-500' }, 'Conócete para entenderte. Observa patrones y disparadores.')
+            ),
+            e('div', { className: 'p-4 bg-white rounded-xl border border-stone-200 shadow-xs space-y-1' },
+              e('span', { className: 'text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded' }, 'FASE 2'),
+              e('h4', { className: 'text-xs font-bold text-stone-800' }, 'Autoaceptación (Días 8-14)'),
+              e('p', { className: 'text-[11px] text-stone-500' }, 'Orden interior. Las 5 heridas y tu personaje protector.')
+            ),
+            e('div', { className: 'p-4 bg-white rounded-xl border border-stone-200 shadow-xs space-y-1' },
+              e('span', { className: 'text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded' }, 'FASE 3'),
+              e('h4', { className: 'text-xs font-bold text-stone-800' }, 'Autoliderazgo (Días 15-21)'),
+              e('p', { className: 'text-[11px] text-stone-500' }, 'Acción consciente. Decisiones adultas y carta de relevo.')
+            )
+          )
+        ),
+
+        // VISTA 21 DÍAS
+        tab === 'days' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-white p-4 rounded-xl border border-stone-200 shadow-xs space-y-3' },
+            e('div', { className: 'flex items-center justify-between' },
+              e('span', { className: 'text-xs font-bold text-stone-500 uppercase tracking-wider' }, 'Navegador Manual (21 Días Disponibles)'),
+              e('span', { className: 'text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full' }, `Fase ${activeDay.phase}`)
+            ),
+            e('div', { className: 'grid grid-cols-7 gap-1.5' },
+              DAYS_DATA.map(d => {
+                const hasA = d.fields.some(f => answers[f.key] && answers[f.key].trim() !== '');
+                const isSel = d.day === selectedDay;
+                return e('button', {
+                  key: d.day,
+                  onClick: () => setSelectedDay(d.day),
+                  className: `py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center ${
+                    isSel ? 'bg-stone-900 text-white shadow-xs' : hasA ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`
+                }, d.day);
+              })
+            )
+          ),
+
+          e('div', { className: 'bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-6' },
+            e('div', { className: 'border-b border-stone-100 pb-3 space-y-1' },
+              e('span', { className: 'text-xs font-bold text-rose-600 uppercase tracking-widest' }, `DÍA ${activeDay.day} DE 21 • FASE ${activeDay.phase}`),
+              e('h2', { className: 'text-xl sm:text-2xl font-serif font-bold text-stone-800' }, activeDay.title)
+            ),
+            e('div', { className: 'bg-stone-50 border-l-4 border-rose-400 p-4 rounded-r-xl space-y-1' },
+              e('span', { className: 'text-xs font-bold text-rose-700 uppercase tracking-wide block' }, 'Pausa BE YOU'),
+              e('p', { className: 'text-xs sm:text-sm text-stone-700 leading-relaxed whitespace-pre-line' }, activeDay.pausa)
+            ),
+            e('div', { className: 'space-y-4 pt-1' },
+              e('span', { className: 'text-xs font-bold text-stone-800 uppercase tracking-wide block border-b border-stone-100 pb-1' }, 'AHORA LLÉVALO A TI'),
+              e('p', { className: 'text-xs text-stone-500 italic' }, activeDay.prompt),
+              activeDay.fields.map(f => e('div', { key: f.key, className: 'space-y-1' },
+                e('label', { className: 'block text-xs font-semibold text-stone-700' }, f.label),
+                e('textarea', {
+                  rows: 3,
+                  value: answers[f.key] || '',
+                  onChange: (ev) => saveAnswer(f.key, ev.target.value),
+                  placeholder: f.placeholder,
+                  className: 'w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-stone-800 outline-none focus:ring-2 focus:ring-rose-400 focus:bg-white transition-all'
+                })
+              ))
+            ),
+            e('div', { className: 'p-3.5 bg-rose-50 border border-rose-100 rounded-xl text-xs text-rose-900' },
+              e('span', { className: 'font-bold uppercase block text-[11px]' }, 'Microresultado esperado:'),
+              e('p', { className: 'mt-0.5' }, activeDay.microresultado)
+            ),
+            e('div', { className: 'flex justify-between pt-2 border-t border-stone-100 text-xs' },
+              e('button', {
+                disabled: selectedDay === 1,
+                onClick: () => setSelectedDay(prev => Math.max(1, prev - 1)),
+                className: 'px-3 py-1.5 border border-stone-200 rounded-lg text-stone-600 disabled:opacity-30'
+              }, '← Día Anterior'),
+              e('button', {
+                disabled: selectedDay === 21,
+                onClick: () => setSelectedDay(prev => Math.min(21, prev + 1)),
+                className: 'px-4 py-1.5 bg-stone-900 text-white rounded-lg disabled:opacity-30'
+              }, 'Siguiente Día →')
+            )
+          )
+        ),
+
+        // VISTA DIAGNÓSTICO
+        tab === 'diagnostic' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5' },
+            e('div', { className: 'border-b border-stone-100 pb-3' },
+              e('span', { className: 'text-xs font-bold text-rose-600 uppercase tracking-widest' }, 'AUTOCONOCIMIENTO ORIENTATIVO'),
+              e('h2', { className: 'text-xl sm:text-2xl font-serif font-bold text-stone-800 mt-1' }, 'Diagnóstico de Heridas Emocionales'),
+              e('p', { className: 'text-xs text-stone-500 mt-1' }, 'Evalúa de 1 a 4 según tu nivel de resonancia (1 = Casi nunca, 4 = Muy a menudo).')
+            ),
+            e('div', { className: 'space-y-3' },
+              DIAG_QUESTIONS.map((q, idx) => e('div', { key: q.id, className: 'p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2' },
+                e('p', { className: 'text-xs font-medium text-stone-800' }, `${idx + 1}. ${q.text}`),
+                e('div', { className: 'grid grid-cols-4 gap-1.5' },
+                  [1, 2, 3, 4].map(val => e('button', {
+                    key: val,
+                    onClick: () => saveDiag(q.id, val),
+                    className: `py-1 text-xs font-semibold rounded-lg border transition-all ${
+                      diagAnswers[q.id] === val ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100'
+                    }`
+                  }, val === 1 ? 'Nunca' : val === 2 ? 'A veces' : val === 3 ? 'Frecuente' : 'Siempre'))
+                )
+              ))
+            ),
+            e('div', { className: 'p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-1 text-xs text-rose-900' },
+              e('p', { className: 'font-bold' }, 'Lleva tus descubrimientos al Día 8, 10 y 12.'),
+              e('p', { className: 'text-rose-700' }, 'Allí observarás cómo tu personaje protector se construyó alrededor de estas necesidades no satisfechas.')
+            )
+          )
+        ),
+
+        // VISTA CLARIDAD AHORA
+        tab === 'clarity' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5' },
+            e('div', { className: 'border-b border-stone-100 pb-3' },
+              e('span', { className: 'text-xs font-bold text-rose-600 uppercase tracking-widest' }, 'HERRAMIENTA DE SOCORRO INMEDIATO'),
+              e('h2', { className: 'text-xl sm:text-2xl font-serif font-bold text-stone-800 mt-1' }, 'Claridad Ahora'),
+              e('p', { className: 'text-xs text-stone-500 mt-1' }, 'Usa esta herramienta cuando te sientas abrumada, paralizada o en un bucle mental.')
+            ),
+            e('div', { className: 'space-y-3 text-xs' },
+              e('div', null,
+                e('label', { className: 'block font-bold text-stone-700 mb-1' }, '1. Situación actual de bloqueo / angustia:'),
+                e('input', {
+                  type: 'text', value: clarity.bloqueo,
+                  onChange: (ev) => saveClarity('bloqueo', ev.target.value),
+                  placeholder: 'Ej. Tengo que responder a una propuesta y me siento paralizada...',
+                  className: 'w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-400'
+                })
+              ),
+              e('div', { className: 'grid sm:grid-cols-2 gap-3' },
+                e('div', null,
+                  e('label', { className: 'block font-bold text-stone-700 mb-1' }, '2. HECHOS Concretos (Sin interpretación):'),
+                  e('textarea', {
+                    rows: 3, value: clarity.hechos,
+                    onChange: (ev) => saveClarity('hechos', ev.target.value),
+                    placeholder: 'Solo hechos medibles. Ej. Me enviaron el documento a las 10 am...',
+                    className: 'w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-400'
+                  })
+                ),
+                e('div', null,
+                  e('label', { className: 'block font-bold text-stone-700 mb-1' }, '3. INTERPRETACIÓN (Película mental):'),
+                  e('textarea', {
+                    rows: 3, value: clarity.interpretacion,
+                    onChange: (ev) => saveClarity('interpretacion', ev.target.value),
+                    placeholder: 'Lo que tu herida cuenta. Ej. Si digo que no, se decepcionarán de mí...',
+                    className: 'w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-400'
+                  })
+                )
+              ),
+              e('div', null,
+                e('label', { className: 'block font-bold text-stone-700 mb-1' }, '4. ¿Qué quieres realmente tú (Soberanía Adulta)?'),
+                e('input', {
+                  type: 'text', value: clarity.deseo,
+                  onChange: (ev) => saveClarity('deseo', ev.target.value),
+                  placeholder: 'Ej. Quiero evaluar la opción con calma sin sentirme obligada a complacer...',
+                  className: 'w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-400'
+                })
+              ),
+              e('div', null,
+                e('label', { className: 'block font-bold text-stone-700 mb-1' }, '5. Tu Microacción Consciente de hoy:'),
+                e('input', {
+                  type: 'text', value: clarity.microaccion,
+                  onChange: (ev) => saveClarity('microaccion', ev.target.value),
+                  placeholder: 'Ej. Responder pidiendo 24 horas para revisar mi agenda...',
+                  className: 'w-full p-2.5 bg-rose-50 border border-rose-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-rose-400'
+                })
+              )
+            )
+          )
+        ),
+
+        // VISTA SESIÓN MAESTRA: LA BRÚJULA ERES TÚ (FUSIÓN IDEA 1 Y 5)
+        tab === 'brujula' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-6' },
+            e('div', { className: 'border-b border-stone-100 pb-3' },
+              e('span', { className: 'text-xs font-bold text-rose-600 uppercase tracking-widest' }, 'SESIÓN MAESTRA DE CIERRE · MÉTODO BE YOU'),
+              e('h2', { className: 'text-xl sm:text-2xl font-serif font-bold text-stone-800 mt-1' }, 'Ahora, la Brújula Eres Tú'),
+              e('p', { className: 'text-xs text-stone-500 mt-1' }, '“De comprenderte para vivir en coherencia a dirigir tu vida con criterio propio.”')
+            ),
+
+            // CALIBRADOR DE CRITERIO PROPIO (IDEA 1)
+            e('div', { className: 'space-y-4 text-xs' },
+              e('div', { className: 'bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-3' },
+                e('span', { className: 'font-bold uppercase text-stone-800 block text-xs' }, '1. Calibrador de Criterio: Hecho vs. Interpretación'),
+                e('div', null,
+                  e('label', { className: 'block font-semibold text-stone-700 mb-1' }, 'Situación o decisión actual de fricción:'),
+                  e('input', {
+                    type: 'text', value: brujula.dilema,
+                    onChange: (ev) => saveBrujula('dilema', ev.target.value),
+                    placeholder: 'Ej. Decidir si aceptar un compromiso que compromete mis tiempos...',
+                    className: 'w-full p-2.5 bg-white border border-stone-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400'
+                  })
+                ),
+                e('div', { className: 'grid sm:grid-cols-2 gap-3' },
+                  e('div', null,
+                    e('label', { className: 'block font-semibold text-stone-700 mb-1' }, 'Sustantivo que te juzga (Voz antigua):'),
+                    e('input', {
+                      type: 'text', value: brujula.sustantivo,
+                      onChange: (ev) => saveBrujula('sustantivo', ev.target.value),
+                      placeholder: 'Ej. Soy cobarde, soy egoísta...',
+                      className: 'w-full p-2 bg-white border border-stone-200 rounded-lg outline-none'
+                    })
+                  ),
+                  e('div', null,
+                    e('label', { className: 'block font-semibold text-stone-700 mb-1' }, 'Verbo que te emancipa (Acción real):'),
+                    e('input', {
+                      type: 'text', value: brujula.verbo,
+                      onChange: (ev) => saveBrujula('verbo', ev.target.value),
+                      placeholder: 'Ej. Elijo cuidar mi energía y decir que no...',
+                      className: 'w-full p-2 bg-white border border-stone-200 rounded-lg outline-none font-medium text-emerald-800'
+                    })
+                  )
+                ),
+                e('div', null,
+                  e('label', { className: 'block font-semibold text-stone-700 mb-1' }, 'Filtro 24h: ¿Qué harías si supieras que tienes toda la sabiduría dentro?'),
+                  e('textarea', {
+                    rows: 2, value: brujula.sabiduria,
+                    onChange: (ev) => saveBrujula('sabiduria', ev.target.value),
+                    placeholder: 'Escribe tu respuesta honesta desde tu centro de gravedad...',
+                    className: 'w-full p-2.5 bg-white border border-stone-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-400'
+                  })
+                )
+              ),
+
+              // PASAPORTE DE SOBERANÍA (IDEA 5)
+              e('div', { className: 'bg-stone-900 text-stone-100 p-5 rounded-xl space-y-3 border border-stone-800 shadow-md' },
+                e('div', { className: 'flex justify-between items-center border-b border-stone-800 pb-2' },
+                  e('span', { className: 'font-serif font-bold text-xs uppercase tracking-wider text-rose-400' }, 'Pasaporte de Soberanía BE YOU'),
+                  e('span', { className: 'text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-bold' }, 'ACTIVO')
+                ),
+                e('div', { className: 'grid sm:grid-cols-2 gap-3 text-xs' },
+                  e('div', null,
+                    e('label', { className: 'block text-stone-400 mb-1' }, 'Mi "NO" sin culpa (Límite claro):'),
+                    e('input', {
+                      type: 'text', value: brujula.limiteNo,
+                      onChange: (ev) => saveBrujula('limiteNo', ev.target.value),
+                      placeholder: 'Ej. No justificarme cuando rechazo una demanda...',
+                      className: 'w-full p-2 bg-stone-800 border border-stone-700 rounded-lg text-white outline-none'
+                    })
+                  ),
+                  e('div', null,
+                    e('label', { className: 'block text-stone-400 mb-1' }, 'Mi "SÍ" sin miedo (Compromiso propio):'),
+                    e('input', {
+                      type: 'text', value: brujula.compromisoSi,
+                      onChange: (ev) => saveBrujula('compromisoSi', ev.target.value),
+                      placeholder: 'Ej. Sí a honrar mis tiempos de descanso...',
+                      className: 'w-full p-2 bg-stone-800 border border-stone-700 rounded-lg text-white outline-none'
+                    })
+                  )
+                ),
+                e('p', { className: 'text-[11px] text-stone-400 italic pt-1 text-center' },
+                  '“Tú eres la fuente. La brújula está en tus manos.”'
+                )
+              ),
+
+              // TARJETA DE RECOMENDACIÓN EBOOK COMPLEMENTARIO
+              e('div', { className: 'bg-gradient-to-br from-rose-50 to-amber-50 p-5 rounded-2xl border border-rose-200 space-y-3' },
+                e('span', { className: 'text-[10px] font-bold text-rose-700 uppercase tracking-wider bg-rose-100 px-2 py-0.5 rounded' }, 'PRODUCTO COMPLEMENTARIO OFICIAL'),
+                e('h3', { className: 'font-serif font-bold text-stone-900 text-sm sm:text-base' }, 'Ebook: Ahora, la Brújula Eres Tú'),
+                e('p', { className: 'text-xs text-stone-600 leading-relaxed' },
+                  'Un camino de autoconocimiento para volver a ti. Profundiza en los 5 capítulos maestros para sostener tu criterio propio, blindar tus valores y actuar con sentido.'
+                ),
+                e('button', {
+                  onClick: () => alert("Aquí se enlaza tu pasarela de compra del eBook 'Ahora, la Brújula Eres Tú'."),
+                  className: 'w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs transition-all active:scale-95'
+                }, 'Obtener el Ebook Complementario →')
+              )
+            )
+          )
+        ),
+
+        // VISTA BITÁCORA
+        tab === 'log' && e('div', { className: 'p-4 sm:p-6 space-y-6 animate-fade-in' },
+          e('div', { className: 'bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5' },
+            e('div', { className: 'flex justify-between items-center border-b border-stone-100 pb-3' },
+              e('div', null,
+                e('span', { className: 'text-xs font-bold text-rose-600 uppercase tracking-widest' }, 'REGISTRO DE NAVEGACIÓN'),
+                e('h2', { className: 'text-xl sm:text-2xl font-serif font-bold text-stone-800' }, 'Mi Bitácora')
+              ),
+              e('button', {
+                onClick: exportarBitacora,
+                className: 'px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-xs'
+              }, 'Descargar .txt')
+            ),
+            e('div', { className: 'space-y-3 max-h-80 overflow-y-auto pr-1 text-xs' },
+              DAYS_DATA.map(d => {
+                const hasA = d.fields.some(f => answers[f.key] && answers[f.key].trim() !== '');
+                return e('div', { key: d.day, className: 'p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1' },
+                  e('div', { className: 'flex justify-between font-bold' },
+                    e('span', null, `Día ${d.day}: ${d.title}`),
+                    e('span', { className: hasA ? 'text-emerald-600' : 'text-stone-400' }, hasA ? 'Completado' : 'Pendiente')
+                  ),
+                  hasA && d.fields.map(f => answers[f.key] ? e('p', { key: f.key, className: 'text-stone-700' },
+                    e('strong', null, `${f.label}: `), answers[f.key]
+                  ) : null)
+                );
+              })
+            ),
+            e('div', { className: 'pt-2 flex justify-end' },
+              e('button', {
+                onClick: reiniciarTodo,
+                className: 'text-xs text-rose-600 hover:underline'
+              }, 'Reiniciar Bitácora')
+            )
+          )
+        ),
+
+        // NAVEGACIÓN INFERIOR FIJA
+        e('nav', { className: 'fixed bottom-0 left-0 right-0 max-w-3xl mx-auto bg-white border-t border-stone-200 px-2 py-2 z-40 flex items-center justify-around shadow-lg' },
+          [
+            { id: 'home', label: 'Inicio' },
+            { id: 'days', label: '21 Días' },
+            { id: 'diagnostic', label: 'Diagnóstico' },
+            { id: 'clarity', label: 'Claridad' },
+            { id: 'brujula', label: 'Brújula' },
+            { id: 'log', label: 'Bitácora' }
+          ].map(item => e('button', {
+            key: item.id,
+            onClick: () => setTab(item.id),
+            className: `py-1 px-2.5 rounded-xl text-[11px] font-semibold transition-all ${
+              tab === item.id ? 'text-rose-600 font-bold bg-rose-50' : 'text-stone-400 hover:text-stone-600'
+            }`
+          }, item.label))
+        )
+
+      );
+    }
+
+    // Montaje en DOM
+    ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+  </script>
+</body>
+</html>
